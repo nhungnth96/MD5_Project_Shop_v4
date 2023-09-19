@@ -3,8 +3,10 @@ package md5.end.service.impl;
 import md5.end.exception.BadRequestException;
 import md5.end.exception.NotFoundException;
 import md5.end.model.dto.request.CartItemRequest;
-import md5.end.model.dto.response.CartItemListResponse;
+
+import md5.end.model.dto.request.OrderRequest;
 import md5.end.model.dto.response.CartItemResponse;
+import md5.end.model.dto.response.OrderResponse;
 import md5.end.model.entity.order.CartItem;
 import md5.end.model.entity.order.Order;
 import md5.end.model.entity.product.Brand;
@@ -12,11 +14,13 @@ import md5.end.model.entity.product.Product;
 import md5.end.model.entity.user.User;
 import md5.end.repository.IBrandRepository;
 import md5.end.repository.ICartItemRepository;
+import md5.end.repository.IOrderRepository;
 import md5.end.repository.IProductRepository;
 import md5.end.security.principal.UserDetailService;
 import md5.end.service.ICartItemService;
 import md5.end.service.amapper.BrandMapper;
 import md5.end.service.amapper.CartItemMapper;
+import md5.end.service.amapper.OrderMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -35,6 +39,10 @@ public class CartItemService implements ICartItemService {
     private IProductRepository productRepository;
     @Autowired
     private CartItemMapper cartItemMapper;
+    @Autowired
+    private OrderMapper orderMapper;
+    @Autowired
+    private IOrderRepository orderRepository;
     @Override
     public List<CartItemResponse> findAll() {
         List<CartItem> cartItems = cartItemRepository.findAll();
@@ -135,8 +143,16 @@ public class CartItemService implements ICartItemService {
     }
     public void clearCart(){
         List<CartItem> cartItems = cartItemRepository.findAllByUserId(userDetailService.getCurrentUser().getId());
-        cartItems.clear();
+        cartItemRepository.deleteAll(cartItems);
 
+    }
+
+    public OrderResponse checkout(OrderRequest orderRequest) throws NotFoundException {
+        List<CartItem> cartItems = cartItemRepository.findAllByUserId(userDetailService.getCurrentUser().getId());
+        Order order = orderMapper.getEntityFromRequest(orderRequest);
+        orderRepository.save(order);
+        cartItemRepository.deleteAll(cartItems);
+        return orderMapper.getResponseFromEntity(order);
     }
 
 }

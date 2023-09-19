@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import md5.end.model.entity.order.CartItem;
+import md5.end.model.entity.order.OrderDetail;
 import md5.end.model.entity.product.Brand;
 import md5.end.model.entity.product.Category;
 
@@ -45,7 +46,6 @@ public class Product {
 
     private int rating;
 
-
     @Lob
     private String description;
 
@@ -72,7 +72,6 @@ public class Product {
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY,mappedBy = "product")
     private List<ProductImage> images;
 
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY,mappedBy = "product")
-    private List<CartItem> cartItems;
+
 
 }

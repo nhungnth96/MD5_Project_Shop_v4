@@ -23,14 +23,7 @@ public class OrderController {
     @Autowired
     private IOrderService orderService;
 
-    @PostMapping("/checkout")
-    @PreAuthorize("hasRole('BUYER')")
-    public ResponseEntity<OrderResponse> checkout(
-            @Valid
-            @RequestBody OrderRequest orderRequest) throws NotFoundException {
-        return new ResponseEntity<>(orderService.checkout(orderRequest), HttpStatus.OK);
 
-    }
 
     @GetMapping("")
     public ResponseEntity<List<OrderResponse>> getAll() {

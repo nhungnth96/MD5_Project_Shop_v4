@@ -27,7 +27,7 @@ public class Category {
     @Column(nullable = false)
     private String name;
 
-    @ManyToOne(cascade = CascadeType.ALL)
+    @ManyToOne
     @JoinColumn(name = "parent_id") // parent_id = null -> id = node cha
     private Category parentCategory;
 

@@ -19,6 +19,6 @@ public class ProfileEditForm {
     @Pattern(regexp = "^0\\d{9}$",message = "Invalid phone number format.")
     private String tel;
     private String address;
-    private String avatar;
+
 
 }

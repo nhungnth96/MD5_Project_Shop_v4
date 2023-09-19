@@ -17,12 +17,14 @@ import md5.end.service.amapper.OrderMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional
 public class OrderService implements IOrderService {
     @Autowired
     private ICartItemRepository cartItemRepository;
@@ -43,35 +45,38 @@ public class OrderService implements IOrderService {
         double total = 0.0;
         List<OrderDetail> orderDetails = new ArrayList<>();
         List<CartItem> cartItems = order.getUser().getCartItems();
+        if(cartItems.isEmpty()){
+            throw new NotFoundException("Empty cart");
+        }
         for (CartItem cartItem : cartItems) {
             OrderDetail orderDetail = new OrderDetail();
             orderDetail.setProduct(cartItem.getProduct());
             orderDetail.setQuantity(cartItem.getQuantity());
+            orderDetail.setPrice(orderDetail.getProduct().getExportPrice());
+            orderDetail.setAmount(orderDetail.getProduct().getExportPrice() * orderDetail.getQuantity());
             orderDetail.setOrder(order);
             orderDetails.add(orderDetail);
-            double amount = cartItem.getProduct().getExportPrice() * cartItem.getQuantity();
-            total += amount;
+            total += orderDetail.getAmount();
         }
-        orderDetailRepository.saveAll(orderDetails);
-        order.setItems(orderDetails);
-        order.setTotal(total);
         if(orderRequest.getShippingId()==1){
             order.setShipping(shippingService.findByType(ShippingType.ECONOMY));
+            order.setShippingDate(order.getOrderDate().plusDays(3));
             order.setTotal(order.getTotal()+order.getShipping().getPrice());
         } else if (orderRequest.getShippingId()==2) {
             order.setShipping(shippingService.findByType(ShippingType.FAST));
+            order.setShippingDate(order.getOrderDate().plusDays(2));
             order.setTotal(order.getTotal()+order.getShipping().getPrice());
         }  else if (orderRequest.getShippingId()==3) {
             order.setShipping(shippingService.findByType(ShippingType.EXPRESS));
+            order.setShippingDate(order.getOrderDate().plusDays(1));
             order.setTotal(order.getTotal()+order.getShipping().getPrice());
         } else {
             throw new NotFoundException("Cannot find this shipping type");
         }
-
-        // Lưu danh sách OrderDetail vào cơ sở dữ liệu
-
-        // Xóa các CartItem sau khi đã thanh toán
-        cartItemService.clearCart();
+        orderDetailRepository.saveAll(orderDetails);
+        order.setItems(orderDetails);
+        order.setTotal(total);
+        cartItemRepository.deleteAll(cartItems);
         return orderMapper.getResponseFromEntity(order);
     }
 
@@ -119,7 +124,7 @@ public class OrderService implements IOrderService {
     }
 
     @Override
-    public OrderResponse save(OrderRequest orderRequest) throws BadRequestException {
+    public OrderResponse save(OrderRequest orderRequest) throws BadRequestException, NotFoundException {
         Order order = orderRepository.save(orderMapper.getEntityFromRequest(orderRequest));
         return orderMapper.getResponseFromEntity(order);
     }

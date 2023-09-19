@@ -1,6 +1,7 @@
 package md5.end.model.entity.order;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -48,7 +49,7 @@ public class Order {
     @JoinColumn(name = "shipping_id")
     private Shipping shipping;
 
-    @OneToMany(mappedBy = "order",cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "order",cascade = CascadeType.ALL,fetch = FetchType.LAZY)
     private List<OrderDetail> items = new ArrayList<>();
 
 

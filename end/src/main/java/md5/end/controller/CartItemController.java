@@ -5,12 +5,16 @@ import md5.end.exception.NotFoundException;
 import md5.end.model.dto.request.BrandRequest;
 import md5.end.model.dto.request.CartItemRequest;
 import md5.end.model.dto.request.CategoryRequest;
+import md5.end.model.dto.request.OrderRequest;
 import md5.end.model.dto.response.CartItemResponse;
 import md5.end.model.dto.response.CartItemResponse;
 
+import md5.end.model.dto.response.OrderResponse;
 import md5.end.model.entity.user.User;
 import md5.end.security.principal.UserDetailService;
 import md5.end.service.ICartItemService;
+import md5.end.service.IOrderService;
+import md5.end.service.impl.CartItemService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,12 +30,21 @@ import java.util.List;
 
 public class CartItemController {
     @Autowired
-    private ICartItemService cartItemService;
+    private CartItemService cartItemService;
     @Autowired
     private UserDetailService userDetailService;
 
-    @PostMapping("")
+    @PostMapping("/checkout")
+    @PreAuthorize("hasRole('BUYER')")
+    public ResponseEntity<String> checkout(
+            @Valid
+            @RequestBody OrderRequest orderRequest) throws NotFoundException {
+            cartItemService.checkout(orderRequest);
+        return new ResponseEntity<>("Checkout successfully",HttpStatus.CREATED);
 
+    }
+
+    @PostMapping("")
     public ResponseEntity<CartItemResponse> add(
             @Valid
             @RequestBody CartItemRequest cartItemRequest) throws NotFoundException, BadRequestException {

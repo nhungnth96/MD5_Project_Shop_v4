@@ -25,5 +25,5 @@ public class OrderResponse {
     private String status;
     private String payment;
     private String shipping;
-    private List<OrderDetail> items;
+    private List<OrderDetailResponse> items;
 }

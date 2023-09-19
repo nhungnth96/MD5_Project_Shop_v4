@@ -15,7 +15,6 @@ public class OrderRequest {
     private String address;
     private String tel;
     private String note;
-
     private Long paymentId;
     private Long shippingId;
 
