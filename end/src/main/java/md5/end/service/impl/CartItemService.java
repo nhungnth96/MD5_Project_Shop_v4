@@ -64,7 +64,6 @@ public class CartItemService implements ICartItemService {
         Optional<CartItem> cartItemOptional = cartItemRepository.findById(id);
         if(!cartItemOptional.isPresent()){
             throw new NotFoundException("Cart item's id "+id+" not found.");
-
         }
         return cartItemMapper.getResponseFromEntity(cartItemOptional.get());
     }
@@ -147,7 +146,7 @@ public class CartItemService implements ICartItemService {
 
     }
 
-    public OrderResponse checkout(OrderRequest orderRequest) throws NotFoundException {
+    public OrderResponse checkout(OrderRequest orderRequest) throws NotFoundException, BadRequestException {
         List<CartItem> cartItems = cartItemRepository.findAllByUserId(userDetailService.getCurrentUser().getId());
         Order order = orderMapper.getEntityFromRequest(orderRequest);
         orderRepository.save(order);

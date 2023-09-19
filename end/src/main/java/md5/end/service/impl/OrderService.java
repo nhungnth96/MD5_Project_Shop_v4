@@ -6,13 +6,16 @@ import md5.end.model.dto.request.OrderRequest;
 import md5.end.model.dto.response.OrderResponse;
 import md5.end.model.entity.order.*;
 import md5.end.model.entity.product.Product;
+import md5.end.model.entity.user.User;
 import md5.end.repository.ICartItemRepository;
 import md5.end.repository.IOrderDetailRepository;
 import md5.end.repository.IOrderRepository;
 import md5.end.repository.IShippingRepository;
+import md5.end.security.principal.UserDetailService;
 import md5.end.service.ICartItemService;
 import md5.end.service.IOrderService;
 import md5.end.service.IShippingService;
+import md5.end.service.IUserService;
 import md5.end.service.amapper.OrderMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -38,48 +41,10 @@ public class OrderService implements IOrderService {
     private IShippingService shippingService;
     @Autowired
     private OrderMapper orderMapper;
-
-    public OrderResponse checkout(OrderRequest orderRequest) throws NotFoundException {
-        Order order = orderMapper.getEntityFromRequest(orderRequest);
-         orderRepository.save(order);
-        double total = 0.0;
-        List<OrderDetail> orderDetails = new ArrayList<>();
-        List<CartItem> cartItems = order.getUser().getCartItems();
-        if(cartItems.isEmpty()){
-            throw new NotFoundException("Empty cart");
-        }
-        for (CartItem cartItem : cartItems) {
-            OrderDetail orderDetail = new OrderDetail();
-            orderDetail.setProduct(cartItem.getProduct());
-            orderDetail.setQuantity(cartItem.getQuantity());
-            orderDetail.setPrice(orderDetail.getProduct().getExportPrice());
-            orderDetail.setAmount(orderDetail.getProduct().getExportPrice() * orderDetail.getQuantity());
-            orderDetail.setOrder(order);
-            orderDetails.add(orderDetail);
-            total += orderDetail.getAmount();
-        }
-        if(orderRequest.getShippingId()==1){
-            order.setShipping(shippingService.findByType(ShippingType.ECONOMY));
-            order.setShippingDate(order.getOrderDate().plusDays(3));
-            order.setTotal(order.getTotal()+order.getShipping().getPrice());
-        } else if (orderRequest.getShippingId()==2) {
-            order.setShipping(shippingService.findByType(ShippingType.FAST));
-            order.setShippingDate(order.getOrderDate().plusDays(2));
-            order.setTotal(order.getTotal()+order.getShipping().getPrice());
-        }  else if (orderRequest.getShippingId()==3) {
-            order.setShipping(shippingService.findByType(ShippingType.EXPRESS));
-            order.setShippingDate(order.getOrderDate().plusDays(1));
-            order.setTotal(order.getTotal()+order.getShipping().getPrice());
-        } else {
-            throw new NotFoundException("Cannot find this shipping type");
-        }
-        orderDetailRepository.saveAll(orderDetails);
-        order.setItems(orderDetails);
-        order.setTotal(total);
-        cartItemRepository.deleteAll(cartItems);
-        return orderMapper.getResponseFromEntity(order);
-    }
-
+    @Autowired
+    private IUserService userService;
+    @Autowired
+    private UserDetailService userDetailService;
     @Override
     public List<OrderResponse> findAll() {
         List<Order> orders = orderRepository.findAll();
@@ -87,14 +52,16 @@ public class OrderService implements IOrderService {
                 .map(order -> orderMapper.getResponseFromEntity(order))
                 .collect(Collectors.toList());
     }
+
     @Override
-    public OrderResponse findByUserId(Long userId) throws NotFoundException {
-        Optional<Order> orderOptional = orderRepository.findByUserId(userId);
-        if(!orderOptional.isPresent()){
-            throw new NotFoundException("Order of user's id "+userId+" not found.");
-        }
-        return orderMapper.getResponseFromEntity(orderOptional.get());
+    public List<OrderResponse> findAllByUserId(Long id) {
+        List<Order> orders = orderRepository.findAllByUserId(id);
+        return orders.stream()
+                .map(order -> orderMapper.getResponseFromEntity(order))
+                .collect(Collectors.toList());
     }
+
+
 
     @Override
     public OrderResponse findByStatus(OrderStatus orderStatus) throws NotFoundException {
@@ -124,12 +91,25 @@ public class OrderService implements IOrderService {
     }
 
     @Override
+    public OrderResponse findByUserId (Long id) throws NotFoundException {
+        Optional<Order> orderOptional = orderRepository.findById(id);
+        if(!orderOptional.isPresent()){
+            throw new NotFoundException("Order's id "+id+" not found.");
+        }
+        Order order = orderOptional.get();
+        if(!order.getUser().getId().equals(userDetailService.getCurrentUser().getId())){
+            throw new NotFoundException("Your orders don't have id "+id);
+        }
+        return orderMapper.getResponseFromEntity(orderOptional.get());
+    }
+
+    @Override
     public OrderResponse save(OrderRequest orderRequest) throws BadRequestException, NotFoundException {
         Order order = orderRepository.save(orderMapper.getEntityFromRequest(orderRequest));
         return orderMapper.getResponseFromEntity(order);
     }
     @Override
-    public OrderResponse updateStatus(OrderRequest orderRequest, Long orderId, OrderStatus orderStatus) throws NotFoundException {
+    public OrderResponse updateStatus(OrderRequest orderRequest, Long orderId, OrderStatus orderStatus) throws NotFoundException, BadRequestException {
         Optional<Order> orderOptional = orderRepository.findById(orderId);
         if (!orderOptional.isPresent()) {
             throw new NotFoundException("Order's id "+orderId+" not found.");

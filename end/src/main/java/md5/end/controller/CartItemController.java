@@ -38,7 +38,7 @@ public class CartItemController {
     @PreAuthorize("hasRole('BUYER')")
     public ResponseEntity<String> checkout(
             @Valid
-            @RequestBody OrderRequest orderRequest) throws NotFoundException {
+            @RequestBody OrderRequest orderRequest) throws NotFoundException, BadRequestException {
             cartItemService.checkout(orderRequest);
         return new ResponseEntity<>("Checkout successfully",HttpStatus.CREATED);
 

@@ -1,6 +1,7 @@
 package md5.end.service.amapper;
 
 
+import md5.end.exception.BadRequestException;
 import md5.end.exception.NotFoundException;
 import md5.end.model.dto.request.OrderRequest;
 import md5.end.model.dto.response.OrderDetailResponse;
@@ -31,13 +32,15 @@ public class OrderMapper implements IGenericMapper<Order, OrderRequest, OrderRes
     @Autowired
     private IPaymentRepository paymentRepository;
     @Autowired
+    private IProductRepository productRepository;
+    @Autowired
     private IShippingRepository shippingRepository;
     @Autowired
     private IOrderDetailRepository orderDetailRepository ;
     @Autowired
     private ShippingService shippingService;
     @Override
-    public Order getEntityFromRequest(OrderRequest orderRequest) throws NotFoundException {
+    public Order getEntityFromRequest(OrderRequest orderRequest) throws NotFoundException, BadRequestException {
         Order order = new Order();
         order.setUser(userDetailService.getCurrentUser());
         order.setReceiver(orderRequest.getReceiver());
@@ -51,9 +54,15 @@ public class OrderMapper implements IGenericMapper<Order, OrderRequest, OrderRes
         double total = 0;
         List<CartItem> cartItems = order.getUser().getCartItems();
         if(cartItems.isEmpty()){
-            throw new NotFoundException("Empty cart");
+            throw new BadRequestException("Empty cart");
         }
         for (CartItem cartItem : cartItems) {
+            Product product = productRepository.findById(cartItem.getProduct().getId()).get();
+            if(product.getStock()<cartItem.getQuantity()){
+                throw new BadRequestException("The product in stock only have "+product.getStock()+" please reduce quantity.");
+            } else {
+                product.setStock(product.getStock()-cartItem.getQuantity());
+            }
             OrderDetail orderDetail = new OrderDetail();
             orderDetail.setProduct(cartItem.getProduct());
             orderDetail.setQuantity(cartItem.getQuantity());
