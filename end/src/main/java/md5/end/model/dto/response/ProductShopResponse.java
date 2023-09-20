@@ -12,18 +12,13 @@ import java.util.Map;
 @AllArgsConstructor
 @Data
 @Builder
-public class ProductResponse {
+public class ProductShopResponse {
     private Long id;
-    private String parentCategoryName;
-    private List<String>  childCategoryName;
     private String brandName;
     private String productName;
     private String image;
     private String description;
-    private String importPrice;
-    private String exportPrice;
-    private int stock;
-    private String status;
+    private String price;
     private Map<String,String> specifications;
     private List<String> childImage;
 }

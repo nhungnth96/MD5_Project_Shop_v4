@@ -3,14 +3,13 @@ package md5.end.service.impl;
 import md5.end.exception.BadRequestException;
 import md5.end.exception.NotFoundException;
 import md5.end.model.dto.request.OrderRequest;
+import md5.end.model.dto.request.OrderStatusUpdate;
+import md5.end.model.dto.response.OrderDetailResponse;
 import md5.end.model.dto.response.OrderResponse;
 import md5.end.model.entity.order.*;
 import md5.end.model.entity.product.Product;
 import md5.end.model.entity.user.User;
-import md5.end.repository.ICartItemRepository;
-import md5.end.repository.IOrderDetailRepository;
-import md5.end.repository.IOrderRepository;
-import md5.end.repository.IShippingRepository;
+import md5.end.repository.*;
 import md5.end.security.principal.UserDetailService;
 import md5.end.service.ICartItemService;
 import md5.end.service.IOrderService;
@@ -30,21 +29,11 @@ import java.util.stream.Collectors;
 @Transactional
 public class OrderService implements IOrderService {
     @Autowired
-    private ICartItemRepository cartItemRepository;
-    @Autowired
-    private CartItemService cartItemService;
-    @Autowired
     private IOrderRepository orderRepository;
-    @Autowired
-    private IOrderDetailRepository orderDetailRepository;
-    @Autowired
-    private IShippingService shippingService;
     @Autowired
     private OrderMapper orderMapper;
     @Autowired
-    private IUserService userService;
-    @Autowired
-    private UserDetailService userDetailService;
+    IProductRepository productRepository;
     @Override
     public List<OrderResponse> findAll() {
         List<Order> orders = orderRepository.findAll();
@@ -91,16 +80,36 @@ public class OrderService implements IOrderService {
     }
 
     @Override
-    public OrderResponse findByUserId (Long id) throws NotFoundException {
+    public OrderDetailResponse findDetailById(Long id) throws NotFoundException {
         Optional<Order> orderOptional = orderRepository.findById(id);
         if(!orderOptional.isPresent()){
             throw new NotFoundException("Order's id "+id+" not found.");
         }
-        Order order = orderOptional.get();
-        if(!order.getUser().getId().equals(userDetailService.getCurrentUser().getId())){
-            throw new NotFoundException("Your orders don't have id "+id);
+        return orderMapper.getDetailResponseFromEntity(orderOptional.get());
+    }
+
+    @Override
+    public OrderResponse findByIdWithUser (Long orderId,Long userId) throws NotFoundException {
+        Optional<Order> orderOptional = orderRepository.findById(orderId);
+        if(!orderOptional.isPresent()){
+            throw new NotFoundException("Order's id "+orderId+" not found.");
+        }
+        if(!orderOptional.get().getUser().getId().equals(userId)){
+            throw new NotFoundException("Your orders don't have id "+orderId);
         }
         return orderMapper.getResponseFromEntity(orderOptional.get());
+    }
+
+    @Override
+    public OrderDetailResponse findDetailWithUser(Long orderId,Long userId) throws NotFoundException {
+        Optional<Order> orderOptional = orderRepository.findById(orderId);
+        if(!orderOptional.isPresent()){
+            throw new NotFoundException("Order's id "+orderId+" not found.");
+        }
+        if(!orderOptional.get().getUser().getId().equals(userId)){
+            throw new NotFoundException("Your orders don't have id "+orderId);
+        }
+        return orderMapper.getDetailResponseFromEntity(orderOptional.get());
     }
 
     @Override
@@ -108,37 +117,70 @@ public class OrderService implements IOrderService {
         Order order = orderRepository.save(orderMapper.getEntityFromRequest(orderRequest));
         return orderMapper.getResponseFromEntity(order);
     }
+
+
     @Override
-    public OrderResponse updateStatus(OrderRequest orderRequest, Long orderId, OrderStatus orderStatus) throws NotFoundException, BadRequestException {
+    public OrderResponse updateStatus(Long orderId, OrderStatusUpdate orderStatusUpdate) throws NotFoundException, BadRequestException {
         Optional<Order> orderOptional = orderRepository.findById(orderId);
         if (!orderOptional.isPresent()) {
             throw new NotFoundException("Order's id "+orderId+" not found.");
         }
-        Order order = orderMapper.getEntityFromRequest(orderRequest);
+        Order order = orderOptional.get();
         order.setId(orderId);
-        order.setStatus(orderStatus);
+        if(order.getStatus()==OrderStatus.PENDING) {
+            switch (orderStatusUpdate.getStatusCode()) {
+                case 1:
+                    order.setStatus(OrderStatus.PROCESSING);
+                    break;
+                case 2:
+                    order.setStatus(OrderStatus.SHIPPING);
+                    break;
+                case 3:
+                    order.setStatus(OrderStatus.DELIVERED);
+                    break;
+                case 4:
+                    order.setStatus(OrderStatus.CANCELLED);
+                    break;
+                default:
+                    throw new BadRequestException("Status's value must be 1-4."
+                            + "\n" +
+                            "1: Processing" + "\n" +
+                            "2: Shipping" + "\n" +
+                            "3: Delivered" + "\n" +
+                            "4: Cancel");
+            }
+        } else {
+            throw new BadRequestException("Can't change status");
+        }
+        if(order.getStatus()==OrderStatus.CANCELLED) {
+            for (OrderDetail item : order.getItems()) {
+                Product product = productRepository.findById(item.getProduct().getId()).get();
+                product.setStock(product.getStock() + item.getQuantity());
+                productRepository.save(product);
+            }
+        }
         return orderMapper.getResponseFromEntity(orderRepository.save(order));
     }
+
+
     @Override
-    public OrderResponse cancel(Long id) throws NotFoundException {
+    public OrderResponse deleteById(Long id) throws NotFoundException {
         Optional<Order> orderOptional = orderRepository.findById(id);
         if (!orderOptional.isPresent()) {
             throw new NotFoundException("Order's id "+id+" not found.");
         }
-        orderOptional.get().setActive(false);
-        orderOptional.get().setStatus(OrderStatus.CANCEL);
-        return orderMapper.getResponseFromEntity(orderRepository.save(orderOptional.get()));
+        Order order = orderOptional.get();
+        order.setActive(false);
+        return orderMapper.getResponseFromEntity(orderRepository.save(order));
     }
-
-
 
     @Override
     public OrderResponse update(OrderRequest orderRequest, Long id) throws NotFoundException {
         return null;
     }
-
     @Override
-    public OrderResponse deleteById(Long id) throws NotFoundException {
+    public OrderResponse delete(Long id) throws NotFoundException {
         return null;
     }
+
 }

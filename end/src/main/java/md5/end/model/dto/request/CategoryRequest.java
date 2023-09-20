@@ -13,7 +13,7 @@ import java.util.List;
 @Data
 @Builder
 public class CategoryRequest {
-    @NotEmpty (message = "Name must be not empty")
+    @NotEmpty(message = "Must be not empty")
     private String name;
 
     private Long parentCategoryId;

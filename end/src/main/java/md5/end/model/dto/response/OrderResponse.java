@@ -13,17 +13,12 @@ import java.util.List;
 @Data
 @Builder
 public class OrderResponse {
-    private Long id;
-    private String owner;
-    private String receiver;
-    private String address;
-    private String tel;
+    private Long orderId;
+    private String orderDate;
+    private String buyer;
     private String note;
     private String total;
-    private String orderDate;
-    private String shippingDate;
-    private String status;
     private String payment;
     private String shipping;
-    private List<OrderDetailResponse> items;
+    private String status;
 }

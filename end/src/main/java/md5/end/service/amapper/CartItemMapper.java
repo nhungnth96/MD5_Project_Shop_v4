@@ -37,7 +37,7 @@ public class CartItemMapper implements IGenericMapper<CartItem, CartItemRequest,
     @Override
     public CartItemResponse getResponseFromEntity(CartItem cartItem) {
         return CartItemResponse.builder()
-                .id(cartItem.getId())
+                .itemId(cartItem.getId())
                 .productName(cartItem.getProduct().getName())
                 .productPrice(NumberFormat.getInstance().format(cartItem.getProduct().getExportPrice())+"₫")
                 .quantity(cartItem.getQuantity())

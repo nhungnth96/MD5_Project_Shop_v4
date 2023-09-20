@@ -1,20 +1,15 @@
 package md5.end.model.dto.response;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-
-
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 @Data
-@Builder
-public class CartItemResponse {
-    private Long itemId;
+public class ItemResponse {
     private String productName;
-    private String productPrice;
+    private String price;
     private int quantity;
     private String amount;
 }

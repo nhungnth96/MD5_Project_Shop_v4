@@ -4,6 +4,7 @@ package md5.end.service.amapper;
 import md5.end.exception.BadRequestException;
 import md5.end.exception.NotFoundException;
 import md5.end.model.dto.request.OrderRequest;
+import md5.end.model.dto.response.ItemResponse;
 import md5.end.model.dto.response.OrderDetailResponse;
 import md5.end.model.dto.response.OrderResponse;
 import md5.end.model.entity.order.*;
@@ -72,51 +73,62 @@ public class OrderMapper implements IGenericMapper<Order, OrderRequest, OrderRes
             order.getItems().add(orderDetail);
             total += orderDetail.getAmount();
         }
+        order.setTotal(total);
         if(orderRequest.getShippingId()==1){
             order.setShipping(shippingService.findByType(ShippingType.ECONOMY));
             order.setShippingDate(order.getOrderDate().plusDays(3));
-            order.setTotal(order.getTotal()+order.getShipping().getPrice());
         } else if (orderRequest.getShippingId()==2) {
             order.setShipping(shippingService.findByType(ShippingType.FAST));
             order.setShippingDate(order.getOrderDate().plusDays(2));
-            order.setTotal(order.getTotal()+order.getShipping().getPrice());
         }  else if (orderRequest.getShippingId()==3) {
             order.setShipping(shippingService.findByType(ShippingType.EXPRESS));
             order.setShippingDate(order.getOrderDate().plusDays(1));
-            order.setTotal(order.getTotal()+order.getShipping().getPrice());
         } else {
             throw new NotFoundException("Cannot find this shipping type");
         }
-        order.setTotal(total);
+        order.setTotal(order.getTotal()+order.getShipping().getPrice());
         return order;
     }
 
     @Override
     public OrderResponse getResponseFromEntity(Order order) {
         OrderResponse orderResponse = new OrderResponse();
-        orderResponse.setId(order.getId());
-        orderResponse.setOwner(order.getUser().getFullName());
-        orderResponse.setReceiver(order.getReceiver());
-        orderResponse.setAddress(order.getAddress());
-        orderResponse.setTel(order.getTel());
+        orderResponse.setOrderId(order.getId());
+        orderResponse.setBuyer(order.getUser().getFullName());
         orderResponse.setNote(order.getNote());
         orderResponse.setTotal(NumberFormat.getInstance().format(order.getTotal()) + "₫");
         orderResponse.setOrderDate(order.getOrderDate().toString());
         orderResponse.setStatus(order.getStatus().name());
         orderResponse.setPayment(order.getPayment().getType().toString());
         orderResponse.setShipping(order.getShipping().getType().toString());
-        orderResponse.setShippingDate(order.getShippingDate().toString());
-        List<OrderDetailResponse> orderDetailResponses = new ArrayList<>();
-        for (OrderDetail item : order.getItems()) {
-            OrderDetailResponse orderDetailResponse = new OrderDetailResponse();
-            orderDetailResponse.setProductId(item.getProduct().getId());
-            orderDetailResponse.setProductName(item.getProduct().getName());
-            orderDetailResponse.setQuantity(item.getQuantity());
-            orderDetailResponse.setPrice(NumberFormat.getInstance().format(item.getProduct().getExportPrice())+"₫");
-            orderDetailResponse.setAmount(NumberFormat.getInstance().format(item.getAmount())+"₫");
-            orderDetailResponses.add(orderDetailResponse);
-        }
-        orderResponse.setItems(orderDetailResponses);
         return orderResponse;
+    }
+
+    public OrderDetailResponse getDetailResponseFromEntity(Order order) {
+        OrderDetailResponse orderDetailResponse = new OrderDetailResponse();
+        orderDetailResponse.setBuyerName(order.getUser().getFullName());
+        orderDetailResponse.setReceiver(order.getReceiver());
+        orderDetailResponse.setAddress(order.getAddress());
+        orderDetailResponse.setTel(order.getTel());
+        orderDetailResponse.setNote(order.getNote());
+        orderDetailResponse.setTotal(NumberFormat.getInstance().format(order.getTotal()) + "₫");
+        orderDetailResponse.setShippingFee(NumberFormat.getInstance().format(order.getShipping().getType().getPrice()) + "₫");
+        orderDetailResponse.setSubTotal(NumberFormat.getInstance().format(order.getTotal()+order.getShipping().getType().getPrice()) + "₫");
+        orderDetailResponse.setOrderDate(order.getOrderDate().toString());
+        orderDetailResponse.setStatus(order.getStatus().name());
+        orderDetailResponse.setPayment(order.getPayment().getType().toString());
+        orderDetailResponse.setShipping(order.getShipping().getType().toString());
+        orderDetailResponse.setShippingDate(order.getShippingDate().toString());
+        List<ItemResponse> itemResponseList = new ArrayList<>();
+        for (OrderDetail item : order.getItems()) {
+            ItemResponse itemResponse = new ItemResponse();
+            itemResponse.setProductName(item.getProduct().getName());
+            itemResponse.setPrice(NumberFormat.getInstance().format(item.getProduct().getExportPrice())+"₫");
+            itemResponse.setQuantity(item.getQuantity());
+            itemResponse.setAmount(NumberFormat.getInstance().format(item.getAmount())+"₫");
+            itemResponseList.add(itemResponse);
+        }
+        orderDetailResponse.setItems(itemResponseList);
+        return orderDetailResponse;
     }
 }

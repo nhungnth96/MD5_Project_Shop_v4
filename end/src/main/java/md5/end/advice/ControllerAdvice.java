@@ -2,6 +2,7 @@ package md5.end.advice;
 
 import md5.end.exception.BadRequestException;
 import md5.end.exception.NotFoundException;
+import md5.end.exception.TypeMissMatchException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import javax.security.auth.login.LoginException;
@@ -22,6 +24,10 @@ public class ControllerAdvice {
     @ExceptionHandler(LoginException.class)
     public ResponseEntity<String> loginFailed(LoginException loginException){
         return new ResponseEntity<>(loginException.getMessage(), HttpStatus.UNAUTHORIZED);
+    }
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<String> typeMissMatch(TypeMissMatchException typeMissMatchException){
+        return new ResponseEntity<>("Field's type miss match",  HttpStatus.BAD_REQUEST);
     }
     // 400 bad request
     @ExceptionHandler(BadRequestException.class)

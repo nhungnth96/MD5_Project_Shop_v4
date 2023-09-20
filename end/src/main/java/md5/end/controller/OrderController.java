@@ -3,7 +3,9 @@ package md5.end.controller;
 import md5.end.exception.BadRequestException;
 import md5.end.exception.NotFoundException;
 import md5.end.model.dto.request.OrderRequest;
+import md5.end.model.dto.request.OrderStatusUpdate;
 import md5.end.model.dto.request.ProductRequest;
+import md5.end.model.dto.response.OrderDetailResponse;
 import md5.end.model.dto.response.OrderResponse;
 import md5.end.model.entity.order.OrderStatus;
 import md5.end.model.entity.user.RoleName;
@@ -43,27 +45,29 @@ public class OrderController {
     public ResponseEntity<OrderResponse> getOne(@PathVariable Long id) throws NotFoundException {
         User user = userDetailService.getCurrentUser();
         if(user.getRoles().size()==1) {
-            return new ResponseEntity<>(orderService.findByUserId(user.getId()), HttpStatus.OK);
+            return new ResponseEntity<>(orderService.findByIdWithUser(id,user.getId()), HttpStatus.OK);
         } else {
             return new ResponseEntity<>(orderService.findById(id), HttpStatus.OK);
         }
-
+    }
+    @GetMapping("/detail/{id}")
+    public ResponseEntity<OrderDetailResponse> getDetail(@PathVariable Long id) throws NotFoundException {
+        User user = userDetailService.getCurrentUser();
+        if(user.getRoles().size()==1) {
+            return new ResponseEntity<>(orderService.findDetailWithUser(id,user.getId()), HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(orderService.findDetailById(id), HttpStatus.OK);
+        }
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('ADMIN','SELLER')")
     public ResponseEntity<OrderResponse> updateStatus(
             @Valid
-            @RequestBody OrderRequest orderRequest,
             @PathVariable Long id,
-            @RequestParam (name = "status")OrderStatus status) throws NotFoundException, BadRequestException {
-        return new ResponseEntity<>(orderService.updateStatus(orderRequest, id,status), HttpStatus.OK);
+            @RequestBody OrderStatusUpdate statusCode) throws NotFoundException, BadRequestException {
+        return new ResponseEntity<>(orderService.updateStatus(id,statusCode), HttpStatus.OK);
     }
 
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SELLER')")
-    public ResponseEntity<OrderResponse> cancel(@PathVariable Long id) throws NotFoundException {
-        return new ResponseEntity<>(orderService.cancel(id), HttpStatus.OK);
 
-    }
 }

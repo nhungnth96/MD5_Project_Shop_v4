@@ -99,6 +99,7 @@ public class CartItemService implements ICartItemService {
             if (!productOptional.isPresent()) {
                 throw new NotFoundException("Product's id " + productId + " not found.");
             } else {
+
                 CartItem cartItem = cartItemMapper.getEntityFromRequest(cartItemRequest);
                 cartItem.setUser(currentUser);
                 return cartItemMapper.getResponseFromEntity(cartItemRepository.save(cartItem));
